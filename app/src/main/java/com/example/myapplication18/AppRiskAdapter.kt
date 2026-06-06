@@ -1,20 +1,28 @@
 package com.example.myapplication18
 
 import android.content.res.ColorStateList
+import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.graphics.toColorInt
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.myapplication18.databinding.ItemAppRiskBinding
+import kotlinx.coroutines.*
 import java.util.Locale
 
 class AppRiskAdapter(
-    private var items: List<ScanResult>,
     private val onUninstallClick: (ScanResult) -> Unit
-) : RecyclerView.Adapter<AppRiskAdapter.ViewHolder>() {
+) : ListAdapter<ScanResult, AppRiskAdapter.ViewHolder>(ScanDiffCallback()) {
 
-    class ViewHolder(val binding: ItemAppRiskBinding) : RecyclerView.ViewHolder(binding.root)
+    private val iconCache = mutableMapOf<String, Drawable>()
+    private val adapterScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+
+    class ViewHolder(val binding: ItemAppRiskBinding) : RecyclerView.ViewHolder(binding.root) {
+        var iconJob: Job? = null
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemAppRiskBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -22,7 +30,7 @@ class AppRiskAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = items[position]
+        val item = getItem(position)
         val context = holder.itemView.context
 
         with(holder.binding) {
@@ -32,12 +40,10 @@ class AppRiskAdapter(
             tvRating.text = context.getString(R.string.rating_format, item.averageRating)
             riskMeter.progress = item.riskScore
 
-            // Format reviews
             if (item.reviews.isNotEmpty()) {
-                val reviewText = item.reviews.joinToString("\n\n") { 
+                tvReviews.text = item.reviews.joinToString("\n\n") { 
                     context.getString(R.string.review_item_format, it.user, it.stars, it.comment)
                 }
-                tvReviews.text = reviewText
                 tvReviewsLabel.visibility = View.VISIBLE
                 tvRating.visibility = View.VISIBLE
                 tvReviews.visibility = View.VISIBLE
@@ -47,15 +53,25 @@ class AppRiskAdapter(
                 tvReviews.visibility = View.GONE
             }
 
-            // Load app icon
-            try {
-                val icon = context.packageManager.getApplicationIcon(item.packageName)
-                ivAppIcon.setImageDrawable(icon)
-            } catch (_: Exception) {
+            holder.iconJob?.cancel()
+            val cachedIcon = iconCache[item.packageName]
+            if (cachedIcon != null) {
+                ivAppIcon.setImageDrawable(cachedIcon)
+            } else {
                 ivAppIcon.setImageResource(android.R.drawable.sym_def_app_icon)
+                holder.iconJob = adapterScope.launch {
+                    val icon = withContext(Dispatchers.IO) {
+                        try {
+                            context.packageManager.getApplicationIcon(item.packageName)
+                        } catch (_: Exception) { null }
+                    }
+                    if (icon != null) {
+                        iconCache[item.packageName] = icon
+                        ivAppIcon.setImageDrawable(icon)
+                    }
+                }
             }
 
-            // Set colors based on risk
             val risk = item.riskLevel.lowercase(Locale.ROOT)
             when (risk) {
                 "safe" -> {
@@ -84,32 +100,32 @@ class AppRiskAdapter(
                 }
             }
 
-            // Expansion logic
             expandableLayout.visibility = if (item.isExpanded) View.VISIBLE else View.GONE
             ivExpand.rotation = if (item.isExpanded) 180f else 0f
-            
-            // AI insight
             tvGeminiExplanation.text = item.geminiExplanation ?: context.getString(R.string.no_insights)
 
             holder.itemView.setOnClickListener {
                 val currentPos = holder.adapterPosition
                 if (currentPos != RecyclerView.NO_POSITION) {
-                    val clickedItem = items[currentPos]
+                    val clickedItem = getItem(currentPos)
                     clickedItem.isExpanded = !clickedItem.isExpanded
                     notifyItemChanged(currentPos)
                 }
             }
 
-            btnUninstall.setOnClickListener {
-                onUninstallClick(item)
-            }
+            btnUninstall.setOnClickListener { onUninstallClick(item) }
         }
     }
 
-    override fun getItemCount() = items.size
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
+        adapterScope.cancel()
+    }
 
-    fun updateData(newItems: List<ScanResult>) {
-        items = newItems
-        notifyDataSetChanged()
+    class ScanDiffCallback : DiffUtil.ItemCallback<ScanResult>() {
+        override fun areItemsTheSame(oldItem: ScanResult, newItem: ScanResult) = 
+            oldItem.packageName == newItem.packageName
+        override fun areContentsTheSame(oldItem: ScanResult, newItem: ScanResult) = 
+            oldItem == newItem && oldItem.isExpanded == newItem.isExpanded
     }
 }

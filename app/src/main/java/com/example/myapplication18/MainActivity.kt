@@ -22,6 +22,7 @@ import com.example.myapplication18.databinding.ActivityMainBinding
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -32,6 +33,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: AppRiskAdapter
     private var allScanResults: List<ScanResult> = emptyList()
     private var isShowingSafe = false
+    private var updateJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +54,14 @@ class MainActivity : AppCompatActivity() {
             binding.btnScan.setOnClickListener { startScan() }
             binding.btnToggleSafe.setOnClickListener { toggleSafeApps() }
             
+            // Allow clicking stat cards to toggle safe apps view
+            binding.statLinks.root.setOnClickListener {
+                if (!isShowingSafe) toggleSafeApps()
+            }
+            binding.statThreats.root.setOnClickListener {
+                if (isShowingSafe) toggleSafeApps()
+            }
+            
             loadCachedResults()
         } catch (e: Exception) {
             Log.e("AegisAI", "Critical failure in onCreate", e)
@@ -59,19 +69,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        adapter = AppRiskAdapter(emptyList()) { item ->
+        adapter = AppRiskAdapter { item ->
             handleUninstall(item)
         }
         binding.rvResults.layoutManager = LinearLayoutManager(this)
         binding.rvResults.adapter = adapter
+        binding.rvResults.setHasFixedSize(true)
     }
 
     private fun handleUninstall(item: ScanResult) {
         if (item.packageName.startsWith("demo.sandbox")) {
             Toast.makeText(this, getString(R.string.removed_simulated, item.appName), Toast.LENGTH_SHORT).show()
             allScanResults = allScanResults.filter { it.packageName != item.packageName }
-            cacheResults(allScanResults)
-            displayFinalResults()
+            lifecycleScope.launch {
+                cacheResults(allScanResults)
+                displayFinalResults()
+            }
         } else {
             try {
                 val intent = Intent(Intent.ACTION_DELETE).apply {
@@ -101,21 +114,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateVisibleResults() {
-        val filtered = if (isShowingSafe) {
-            allScanResults
-        } else {
-            allScanResults.filter { it.riskLevel.lowercase(Locale.ROOT) != "safe" }
+        // Prevent multiple concurrent update jobs to avoid UI freeze
+        updateJob?.cancel()
+        updateJob = lifecycleScope.launch {
+            binding.btnToggleSafe.isEnabled = false // Prevent double clicks
+            
+            val filtered = withContext(Dispatchers.Default) {
+                if (isShowingSafe) {
+                    allScanResults
+                } else {
+                    allScanResults.filter { it.riskLevel.lowercase(Locale.ROOT) != "safe" }
+                }
+            }
+            
+            adapter.submitList(filtered) {
+                // This callback runs after the list is submitted and diffed
+                binding.btnToggleSafe.isEnabled = true
+                if (filtered.isNotEmpty()) {
+                    binding.rvResults.scrollToPosition(0)
+                }
+            }
         }
-        adapter.updateData(filtered)
     }
 
     private fun startScan() {
         binding.btnScan.isEnabled = false
+        binding.btnToggleSafe.isEnabled = false
         binding.tvStatus.text = getString(R.string.scan_analyzing)
         binding.scanProgress.progress = 0
         binding.layoutSummary.visibility = View.GONE
         binding.resultsHeaderLayout.visibility = View.GONE
-        adapter.updateData(emptyList())
+        adapter.submitList(emptyList())
 
         lifecycleScope.launch {
             val scanResults = withContext(Dispatchers.Default) {
@@ -134,7 +163,7 @@ class MainActivity : AppCompatActivity() {
                         val progress = if (totalApps > 0) ((index + 1) * 100 / totalApps) else 0
                         val appLabel = packageManager.getApplicationLabel(app).toString()
                         
-                        if (index % 5 == 0 || index == totalApps - 1) {
+                        if (index % 10 == 0 || index == totalApps - 1) {
                             withContext(Dispatchers.Main) {
                                 binding.scanProgress.progress = progress
                                 binding.tvAppCount.text = getString(R.string.analyzing_app, appLabel)
@@ -193,7 +222,6 @@ class MainActivity : AppCompatActivity() {
                                 ))
                             }
                             else -> {
-                                // Sideloaded APK or unknown source
                                 results.add(ScanResult(
                                     appLabel, packageName, "Moderate", 40,
                                     getString(R.string.sideloaded_type), getString(R.string.sideloaded_desc),
@@ -224,10 +252,10 @@ class MainActivity : AppCompatActivity() {
                         }
                 }
 
-                results
+                results.sortedByDescending { it.riskScore }
             }
 
-            allScanResults = scanResults.sortedByDescending { it.riskScore }
+            allScanResults = scanResults
             cacheResults(allScanResults)
             displayFinalResults()
         }
@@ -256,29 +284,39 @@ class MainActivity : AppCompatActivity() {
 
             binding.resultsHeaderLayout.visibility = View.VISIBLE
             binding.btnScan.isEnabled = true
+            binding.btnToggleSafe.isEnabled = true
             binding.btnScan.text = getString(R.string.scan_rescan)
             
             updateVisibleResults()
         } catch (_: Exception) {}
     }
 
-    private fun cacheResults(results: List<ScanResult>) {
+    private suspend fun cacheResults(results: List<ScanResult>) = withContext(Dispatchers.IO) {
         try {
+            val json = Gson().toJson(results)
             getSharedPreferences("aegis_cache", Context.MODE_PRIVATE).edit {
-                putString("last_scan", Gson().toJson(results))
+                putString("last_scan", json)
             }
         } catch (_: Exception) {}
     }
 
     private fun loadCachedResults() {
-        try {
-            val json = getSharedPreferences("aegis_cache", Context.MODE_PRIVATE).getString("last_scan", null)
-            if (json != null) {
-                val listType = object : TypeToken<List<ScanResult>>() {}.type
-                allScanResults = Gson().fromJson(json, listType)
+        lifecycleScope.launch {
+            val results = withContext(Dispatchers.IO) {
+                try {
+                    val json = getSharedPreferences("aegis_cache", Context.MODE_PRIVATE).getString("last_scan", null)
+                    if (json != null) {
+                        val listType = object : TypeToken<List<ScanResult>>() {}.type
+                        Gson().fromJson<List<ScanResult>>(json, listType)
+                    } else null
+                } catch (_: Exception) { null }
+            }
+            
+            if (results != null) {
+                allScanResults = results
                 displayFinalResults()
             }
-        } catch (_: Exception) {}
+        }
     }
 
     private suspend fun loadRiskMetadata(): List<AppRisk> = withContext(Dispatchers.IO) {
