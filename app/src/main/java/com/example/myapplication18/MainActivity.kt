@@ -146,7 +146,7 @@ class MainActivity : AppCompatActivity() {
                         
                         val isSystemApp = (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0
 
-                        // Detect installer source for Play Store detection
+                        // Check installer source (Official Store detection)
                         val installer = try {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                                 packageManager.getInstallSourceInfo(packageName).installingPackageName
@@ -157,41 +157,44 @@ class MainActivity : AppCompatActivity() {
                         } catch (_: Exception) {
                             null
                         }
-                        val isPlayStoreApp = installer == "com.android.vending"
 
-                        when {
-                            match != null -> {
-                                results.add(ScanResult(
-                                    appLabel, packageName, match.risk_level, 
-                                    if (match.risk_level.lowercase() == "high") 90 else 50,
-                                    match.scam_type, match.description, 
-                                    match.average_rating, match.reviews,
-                                    isExpanded = false,
-                                    geminiExplanation = match.gemini_explanation
-                                ))
-                            }
-                            isSystemApp -> {
-                                results.add(ScanResult(
-                                    appLabel, packageName, "Safe", 0,
-                                    getString(R.string.verified_safe_type), getString(R.string.system_comp_desc),
-                                    5.0, emptyList()
-                                ))
-                            }
-                            isPlayStoreApp -> {
-                                results.add(ScanResult(
-                                    appLabel, packageName, "Safe", 5,
-                                    getString(R.string.verified_safe_type), getString(R.string.play_store_desc),
-                                    4.8, emptyList()
-                                ))
-                            }
-                            else -> {
-                                // Sideloaded APK or unknown source
-                                results.add(ScanResult(
-                                    appLabel, packageName, "Moderate", 40,
-                                    getString(R.string.sideloaded_type), getString(R.string.sideloaded_desc),
-                                    3.0, emptyList()
-                                ))
-                            }
+                        val isFromOfficialStore = installer in listOf(
+                            "com.android.vending", // Play Store
+                            "com.sec.android.app.samsungapps", // Samsung
+                            "com.amazon.venezia", // Amazon
+                            "com.xiaomi.mipicks", // Xiaomi
+                            "com.huawei.appmarket", // Huawei
+                            "com.oppo.market" // Oppo
+                        )
+
+                        // Broad check for trusted publishers
+                        val isTrustedPublisher = packageName.startsWith("com.google.") || 
+                                                 packageName.startsWith("com.android.") ||
+                                                 packageName.startsWith("com.samsung.")
+
+                        if (match != null) {
+                            results.add(ScanResult(
+                                appLabel, packageName, match.risk_level, 
+                                if (match.risk_level.lowercase() == "high") 90 else 50,
+                                match.scam_type, match.description, 
+                                match.average_rating, match.reviews,
+                                isExpanded = false,
+                                geminiExplanation = match.gemini_explanation
+                            ))
+                        } else if (isSystemApp || isFromOfficialStore || isTrustedPublisher) {
+                            results.add(ScanResult(
+                                appLabel, packageName, "Safe", if (isSystemApp) 0 else 5,
+                                getString(R.string.verified_safe_type), 
+                                if (isSystemApp) getString(R.string.system_comp_desc) else getString(R.string.play_store_desc),
+                                5.0, emptyList()
+                            ))
+                        } else {
+                            // Only flag unverified sideloaded apps as Moderate
+                            results.add(ScanResult(
+                                appLabel, packageName, "Moderate", 40,
+                                getString(R.string.sideloaded_type), getString(R.string.sideloaded_desc),
+                                3.0, emptyList()
+                            ))
                         }
                     } catch (_: Exception) {}
                 }
