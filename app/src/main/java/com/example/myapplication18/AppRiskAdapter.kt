@@ -41,9 +41,10 @@ class AppRiskAdapter(
             riskMeter.progress = item.riskScore
 
             if (item.reviews.isNotEmpty()) {
-                tvReviews.text = item.reviews.joinToString("\n\n") { 
+                val reviewText = item.reviews.joinToString("\n\n") { 
                     context.getString(R.string.review_item_format, it.user, it.stars, it.comment)
                 }
+                tvReviews.text = reviewText
                 tvReviewsLabel.visibility = View.VISIBLE
                 tvRating.visibility = View.VISIBLE
                 tvReviews.visibility = View.VISIBLE
@@ -53,6 +54,7 @@ class AppRiskAdapter(
                 tvReviews.visibility = View.GONE
             }
 
+            // Load app icon asynchronously
             holder.iconJob?.cancel()
             val cachedIcon = iconCache[item.packageName]
             if (cachedIcon != null) {
@@ -107,13 +109,15 @@ class AppRiskAdapter(
             holder.itemView.setOnClickListener {
                 val currentPos = holder.adapterPosition
                 if (currentPos != RecyclerView.NO_POSITION) {
-                    val clickedItem = getItem(currentPos)
-                    clickedItem.isExpanded = !clickedItem.isExpanded
+                    val currentItem = getItem(currentPos)
+                    currentItem.isExpanded = !currentItem.isExpanded
                     notifyItemChanged(currentPos)
                 }
             }
 
-            btnUninstall.setOnClickListener { onUninstallClick(item) }
+            btnUninstall.setOnClickListener {
+                onUninstallClick(item)
+            }
         }
     }
 
@@ -125,6 +129,7 @@ class AppRiskAdapter(
     class ScanDiffCallback : DiffUtil.ItemCallback<ScanResult>() {
         override fun areItemsTheSame(oldItem: ScanResult, newItem: ScanResult) = 
             oldItem.packageName == newItem.packageName
+
         override fun areContentsTheSame(oldItem: ScanResult, newItem: ScanResult) = 
             oldItem == newItem && oldItem.isExpanded == newItem.isExpanded
     }

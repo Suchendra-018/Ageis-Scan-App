@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity() {
             binding.btnScan.setOnClickListener { startScan() }
             binding.btnToggleSafe.setOnClickListener { toggleSafeApps() }
             
-            // Allow clicking stat cards to toggle safe apps view
+            // Allow clicking stats cards to toggle safe apps view
             binding.statLinks.root.setOnClickListener {
                 if (!isShowingSafe) toggleSafeApps()
             }
@@ -117,7 +117,7 @@ class MainActivity : AppCompatActivity() {
         // Prevent multiple concurrent update jobs to avoid UI freeze
         updateJob?.cancel()
         updateJob = lifecycleScope.launch {
-            binding.btnToggleSafe.isEnabled = false // Prevent double clicks
+            binding.btnToggleSafe.isEnabled = false // Prevent double clicks during processing
             
             val filtered = withContext(Dispatchers.Default) {
                 if (isShowingSafe) {
@@ -128,7 +128,7 @@ class MainActivity : AppCompatActivity() {
             }
             
             adapter.submitList(filtered) {
-                // This callback runs after the list is submitted and diffed
+                // Re-enable button and reset scroll after diffing is complete
                 binding.btnToggleSafe.isEnabled = true
                 if (filtered.isNotEmpty()) {
                     binding.rvResults.scrollToPosition(0)
@@ -163,6 +163,7 @@ class MainActivity : AppCompatActivity() {
                         val progress = if (totalApps > 0) ((index + 1) * 100 / totalApps) else 0
                         val appLabel = packageManager.getApplicationLabel(app).toString()
                         
+                        // Update UI every 10 apps to keep it responsive without overhead
                         if (index % 10 == 0 || index == totalApps - 1) {
                             withContext(Dispatchers.Main) {
                                 binding.scanProgress.progress = progress
@@ -222,6 +223,7 @@ class MainActivity : AppCompatActivity() {
                                 ))
                             }
                             else -> {
+                                // Sideloaded APK or unknown source
                                 results.add(ScanResult(
                                     appLabel, packageName, "Moderate", 40,
                                     getString(R.string.sideloaded_type), getString(R.string.sideloaded_desc),
