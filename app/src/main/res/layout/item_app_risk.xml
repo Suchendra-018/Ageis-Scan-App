@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginBottom="4dp"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="#303540"
+    app:cardBackgroundColor="#1C1F26">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Header Section -->
+        <LinearLayout
+            android:id="@+id/headerContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center_vertical">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivAppIcon"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="4dp"
+                android:background="#303540"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Medium"
+                android:src="@android:drawable/sym_def_app_icon"
+                android:contentDescription="App Icon" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvAppName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="App Name"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:ellipsize="end"
+                    android:maxLines="1" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tvRiskLevel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SAFE"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="2dp"
+                        android:background="@drawable/bg_risk_badge"
+                        android:backgroundTint="#152C22"
+                        android:textColor="#00E676" />
+
+                    <TextView
+                        android:id="@+id/tvScamType"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:text="Scam Type"
+                        android:textSize="11sp"
+                        android:textColor="#A0A0A0" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/ivExpand"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/arrow_down_float"
+                app:tint="#A0A0A0"
+                android:contentDescription="Expand" />
+        </LinearLayout>
+
+        <!-- Risk Meter -->
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/riskMeter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            app:trackThickness="4dp"
+            app:trackCornerRadius="2dp"
+            android:progress="0"
+            app:trackColor="#303540" />
+
+        <!-- Expanded Content -->
+        <LinearLayout
+            android:id="@+id/expandableLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingBottom="16dp"
+            android:visibility="gone">
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0.5dp"
+                android:background="#303540"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="12dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="RISK ANALYSIS"
+                android:textSize="10sp"
+                android:textColor="#A0A0A0"
+                android:textStyle="bold"
+                android:letterSpacing="0.1" />
+
+            <TextView
+                android:id="@+id/tvDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Detailed description of the app risk."
+                android:layout_marginTop="4dp"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="AI SECURITY RECOMMENDATION"
+                android:textSize="10sp"
+                android:textColor="#A0A0A0"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"
+                android:layout_marginTop="16dp"/>
+
+            <TextView
+                android:id="@+id/tvGeminiExplanation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Analyzing with Gemini AI..."
+                android:layout_marginTop="4dp"
+                android:textColor="#00E676"
+                android:textSize="14sp"
+                android:lineSpacingExtra="2dp" />
+
+            <!-- Reviews Section -->
+            <TextView
+                android:id="@+id/tvReviewsLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="USER REVIEWS &amp; RATING"
+                android:textSize="10sp"
+                android:textColor="#A0A0A0"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"
+                android:layout_marginTop="16dp"/>
+
+            <TextView
+                android:id="@+id/tvRating"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Average Rating: 0.0 ★"
+                android:textColor="#FFD600"
+                android:textSize="13sp"
+                android:layout_marginTop="4dp"/>
+
+            <TextView
+                android:id="@+id/tvReviews"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Reviews loading..."
+                android:layout_marginTop="4dp"
+                android:textColor="#D0D0D0"
+                android:textSize="12sp"
+                android:lineSpacingExtra="2dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnUninstall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="REMOVE HARMFUL APP"
+                android:layout_marginTop="20dp"
+                app:cornerRadius="12dp"
+                android:backgroundTint="#FF5252"
+                android:textColor="@android:color/white"
+                app:icon="@android:drawable/ic_menu_delete"
+                app:iconGravity="textStart"
+                android:visibility="gone"/>
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

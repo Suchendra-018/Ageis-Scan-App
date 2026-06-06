@@ -1,0 +1,36 @@
+<resources>
+    <string name="app_name">AegisAI</string>
+    <string name="accessibility_description">AegisAI Scam Shield monitors for high-risk applications and alerts you before installation.</string>
+    <string name="risk_high">HIGH RISK</string>
+    <string name="risk_moderate">MODERATE</string>
+    <string name="risk_safe">SAFE</string>
+    <string name="rating_format">Average Rating: %1$.1f ★</string>
+    <string name="no_insights">No additional security insights available for this app.</string>
+    <string name="scan_analyzing">AegisAI Analyzing…</string>
+    <string name="scan_start">START INTELLIGENT SCAN</string>
+    <string name="scan_rescan">RE-SCAN SYSTEM</string>
+    <string name="show_verified">Show Verified Apps</string>
+    <string name="hide_safe">Hide Safe Apps</string>
+    <string name="status_secure">System Secure</string>
+    <string name="status_risks_detected">%1$d Risks Detected!</string>
+    <string name="stat_total_label">Apps Scanned</string>
+    <string name="stat_threats_label">Threats Detected</string>
+    <string name="stat_safe_label">Safe Apps</string>
+    <string name="analyzing_app">Analyzing: %1$s</string>
+    <string name="review_report">Review security report details below.</string>
+    <string name="no_threats_found">No threats found. All applications safe.</string>
+    <string name="tap_to_scan">Tap below to scan your device</string>
+    <string name="simulated_threat_suffix">(Simulated Threat)</string>
+    <string name="simulated_description_suffix">(Simulated for security demonstration).</string>
+    <string name="demo_gemini_explanation">Gemini Insights: This application exhibits typical markers of financial risks, aggressive monetization, and lack of verified publishing credentials. Recommended to remove immediately.</string>
+    <string name="unverified_desc">This app is not in our verified database.</string>
+    <string name="unverified_type">Unverified</string>
+    <string name="system_comp_desc">Official System Component.</string>
+    <string name="play_store_desc">Verified Play Store Application.</string>
+    <string name="sideloaded_desc">This app was not installed via Play Store. Sideloaded APKs may carry higher security risks.</string>
+    <string name="sideloaded_type">Sideloaded APK</string>
+    <string name="verified_safe_type">Verified Safe</string>
+    <string name="removed_simulated">Removed simulated threat: %1$s</string>
+    <string name="uninstall_error">Could not start uninstallation for %1$s</string>
+    <string name="review_item_format">👤 %1$s (%2$d★)\n\"%3$s\"</string>
+</resources>

@@ -1,0 +1,196 @@
+{
+  "apps": [
+    {
+      "app_name": "SmartWQ",
+      "risk_level": "High",
+      "scam_type": "Investment Pyramid Scam",
+      "description": "Promises guaranteed daily returns and referral rewards which resemble Ponzi-style schemes.",
+      "average_rating": 2.1,
+      "reviews": [
+        {
+          "user": "Rahul K",
+          "stars": 1,
+          "comment": "They promised daily earnings but after depositing money the withdrawal stopped working."
+        },
+        {
+          "user": "Anita S",
+          "stars": 2,
+          "comment": "App looked professional but later I realized it depends heavily on referrals."
+        },
+        {
+          "user": "Manoj R",
+          "stars": 1,
+          "comment": "Many people reported losing money. Customer support stopped responding."
+        }
+      ]
+    },
+    {
+      "app_name": "RajBet",
+      "risk_level": "High",
+      "scam_type": "Online Betting Fraud",
+      "description": "Unregulated betting platform with high financial risk and possible illegal transactions.",
+      "average_rating": 2.5,
+      "reviews": [
+        {
+          "user": "Kiran P",
+          "stars": 2,
+          "comment": "Easy to deposit but very difficult to withdraw winnings."
+        },
+        {
+          "user": "Sanjay T",
+          "stars": 1,
+          "comment": "Account blocked after winning money. Support did not reply."
+        },
+        {
+          "user": "Amit G",
+          "stars": 2,
+          "comment": "Risky betting platform. Not trustworthy."
+        }
+      ]
+    },
+    {
+      "app_name": "1xBet",
+      "risk_level": "High",
+      "scam_type": "Illegal Betting App",
+      "description": "Known for unregulated gambling operations and aggressive tracking. High risk of financial loss.",
+      "average_rating": 2.2,
+      "reviews": [
+        {
+          "user": "Deepak M",
+          "stars": 1,
+          "comment": "Total scam. Won 5000 but they closed my account for no reason."
+        },
+        {
+          "user": "Sonia L",
+          "stars": 2,
+          "comment": "Aggressive ads everywhere. App is slow and buggy."
+        },
+        {
+          "user": "Karan V",
+          "stars": 1,
+          "comment": "Avoid this app. Stole my card details."
+        }
+      ]
+    },
+    {
+      "app_name": "Castle App",
+      "risk_level": "High",
+      "scam_type": "Unofficial APK Streaming",
+      "description": "Third-party streaming APK not available on official stores. Provides pirated content and may contain malware.",
+      "average_rating": 2.6,
+      "reviews": [
+        {
+          "user": "Aditya M",
+          "stars": 2,
+          "comment": "Works sometimes but device became slow after installing."
+        },
+        {
+          "user": "Pooja L",
+          "stars": 3,
+          "comment": "Too many pop-ups and ads."
+        },
+        {
+          "user": "Suresh V",
+          "stars": 2,
+          "comment": "Not safe compared to official apps."
+        }
+      ]
+    },
+    {
+      "app_name": "NetMirror",
+      "risk_level": "High",
+      "scam_type": "Pirated Streaming APK",
+      "description": "Unofficial streaming service that may expose users to malicious downloads and data tracking.",
+      "average_rating": 2.4,
+      "reviews": [
+        {
+          "user": "Ravi K",
+          "stars": 2,
+          "comment": "Frequent redirects to suspicious websites."
+        },
+        {
+          "user": "Akash B",
+          "stars": 1,
+          "comment": "Device started showing unusual ads after installing."
+        },
+        {
+          "user": "Neha P",
+          "stars": 3,
+          "comment": "Works but security feels questionable."
+        }
+      ]
+    },
+    {
+      "app_name": "Cricfy TV",
+      "risk_level": "High",
+      "scam_type": "Unofficial Streaming APK",
+      "description": "Provides pirated sports streaming and may expose users to malicious ads or tracking.",
+      "average_rating": 2.8,
+      "reviews": [
+        {
+          "user": "Vikram D",
+          "stars": 3,
+          "comment": "Streams matches but too many ads and suspicious redirects."
+        },
+        {
+          "user": "Naveen S",
+          "stars": 2,
+          "comment": "Sometimes installs unknown plugins."
+        },
+        {
+          "user": "Rohit P",
+          "stars": 3,
+          "comment": "Works but feels unsafe."
+        }
+      ]
+    },
+    {
+      "app_name": "Angel One",
+      "risk_level": "Moderate",
+      "scam_type": "Investment Platform",
+      "description": "Legitimate trading platform but financial investment carries risk and requires informed decision making.",
+      "average_rating": 3.8,
+      "reviews": [
+        {
+          "user": "Rakesh S",
+          "stars": 4,
+          "comment": "Good trading platform but beginners should understand risks."
+        },
+        {
+          "user": "Sneha K",
+          "stars": 3,
+          "comment": "Interface is good but market investments can be volatile."
+        },
+        {
+          "user": "Varun M",
+          "stars": 4,
+          "comment": "Decent brokerage platform."
+        }
+      ]
+    },
+    {
+      "app_name": "Groww",
+      "risk_level": "Moderate",
+      "scam_type": "Investment Platform",
+      "description": "Regulated investment app for stocks and mutual funds. Risk is tied to market performance.",
+      "average_rating": 4.1,
+      "reviews": [
+        {
+          "user": "Prakash J",
+          "stars": 5,
+          "comment": "Great UI, easy for mutual funds."
+        },
+        {
+          "user": "Anjali H",
+          "stars": 4,
+          "comment": "Good app, but always read documents before investing."
+        },
+        {
+          "user": "Sameer L",
+          "stars": 3,
+          "comment": "Market dips caused losses, app is fine though."
+        }
+      ]
+    }
+  ]
+}
