@@ -2,11 +2,13 @@
 
 ## Overview
 
-AegisAI is an Android application that helps users identify potentially risky applications installed on their devices.
+AegisAI is an Android security application designed to help users identify potentially risky applications installed on their devices.
 
-The application scans all installed apps, analyzes their installation sources, evaluates risk levels, and generates a security report. Users can review threat details, user feedback, security recommendations, and remove suspicious applications directly from the app.
+The application scans installed apps, verifies their installation sources, evaluates risk levels, and provides detailed security information. It helps users understand whether an application is safe, suspicious, or potentially harmful by analyzing local threat metadata and installation patterns.
 
-The goal of AegisAI is to improve mobile security awareness and help users make informed decisions about the applications installed on their devices.
+In addition to risk analysis, the application provides user-reported reviews, threat reports, security recommendations, and an option to remove suspicious applications directly from the device.
+
+The primary goal of AegisAI is to improve mobile security awareness and help users make informed decisions about the applications they use.
 
 ---
 
@@ -14,52 +16,58 @@ The goal of AegisAI is to improve mobile security awareness and help users make 
 
 ### Application Scanning
 - Scans all installed applications on the device.
-- Generates a complete security report.
+- Generates a complete security assessment report.
 
 ### Risk Classification
-Applications are categorized as:
+Applications are categorized into:
 - High Risk
 - Moderate Risk
 - Safe
 
 ### Installation Source Verification
-- Verifies whether applications are installed from trusted app stores.
-- Detects applications installed through unknown or sideloaded APK sources.
+- Verifies whether applications were installed from trusted app stores.
+- Detects applications installed from unknown or sideloaded sources.
 
 ### Threat Detection
-- Compares installed applications against a local threat metadata database.
-- Identifies potentially risky applications.
+- Uses a local threat metadata database to identify potentially risky applications.
+- Highlights applications that match known threat patterns.
 
 ### Security Dashboard
-Provides:
-- Total Apps Scanned
+Provides a summary of:
+- Total Applications Scanned
 - Threats Detected
 - Safe Applications
+- Risk Distribution
 
-### Risk Analysis
-- Displays detailed explanations for flagged applications.
-- Shows threat descriptions and risk information.
+### Detailed Risk Analysis
+Displays:
+- Risk Level
+- Risk Score
+- Threat Description
+- Detection Reason
+- Security Recommendation
 
-### User Feedback and Reviews
-- Displays user ratings and reported experiences.
-- Helps users understand potential risks associated with an application.
+### User Reviews and Reports
+- Displays user experiences and reports related to suspicious applications.
+- Helps users understand real-world risks associated with flagged applications.
 
 ### Security Recommendations
-- Provides recommendations based on detected threats.
+- Provides guidance based on detected threats.
+- Suggests actions users can take to improve device security.
 
-### One-Tap App Removal
+### Application Removal
 - Allows users to uninstall suspicious applications directly from the report.
 
-### Local Result Storage
-- Saves scan results locally using Shared Preferences.
-- Allows users to view previous scan reports without rescanning.
+### Local Scan History
+- Stores scan results locally.
+- Allows users to review previous reports without performing another scan.
 
 ---
 
 ## Screenshots
 
-### Scan Analysis
-![Scan Analysis](assets/screenshots/scan_progress.png)
+### Application Scan
+![Application Scan](assets/screenshots/scan_progress.png)
 
 ### Security Dashboard
 ![Security Dashboard](assets/screenshots/dashboard.png)
@@ -70,6 +78,9 @@ Provides:
 ### Detailed Risk Analysis
 ![Detailed Risk Analysis](assets/screenshots/risk_details.png)
 
+### User Reviews and Reports
+![User Reviews and Reports](assets/screenshots/reviews_report.png)
+
 ### Safe Applications
 ![Safe Applications](assets/screenshots/safe_apps.png)
 
@@ -78,27 +89,29 @@ Provides:
 ## Technology Stack
 
 | Category | Technology |
-|-----------|-----------|
+|----------|------------|
 | Language | Kotlin |
-| UI | XML Layouts, ViewBinding |
-| Design | Material Design 3 |
+| User Interface | XML Layouts, ViewBinding |
+| Design System | Material Design 3 |
 | Concurrency | Kotlin Coroutines |
-| Storage | Shared Preferences |
-| JSON Parsing | Gson |
-| Components | RecyclerView, Services, Broadcast Receivers |
+| Data Storage | Shared Preferences |
+| JSON Processing | Gson |
 | Android APIs | PackageManager |
+| UI Components | RecyclerView |
+| Background Components | Services, Broadcast Receivers |
 
 ---
 
 ## How It Works
 
 1. Loads threat metadata from a local JSON database.
-2. Retrieves installed applications using PackageManager.
-3. Verifies installation sources.
-4. Applies risk scoring logic.
-5. Categorizes applications as High Risk, Moderate Risk, or Safe.
+2. Retrieves installed application information using Android PackageManager.
+3. Verifies the installation source of each application.
+4. Applies risk analysis and threat detection rules.
+5. Calculates risk scores and assigns categories.
 6. Displays results in an interactive dashboard.
-7. Stores scan results for future reference.
+7. Provides detailed reports and security recommendations.
+8. Stores scan results locally for future review.
 
 ---
 
@@ -134,19 +147,20 @@ Open the project in Android Studio.
 
 Requirements:
 - Android Studio Hedgehog or newer
-- Android SDK 34+
+- Android SDK 34 or above
 
-Build and run the application on an emulator or physical Android device.
+Build and run the application on an Android emulator or physical device.
 
 ---
 
-## Future Improvements
+## Future Enhancements
 
 - Real-time threat monitoring
 - Permission-based risk analysis
-- Machine learning threat prediction
+- Machine learning based threat prediction
 - Cloud-based threat intelligence integration
 - Security report export
+- Advanced privacy auditing
 
 ---
 
@@ -156,4 +170,4 @@ Suchendra A
 
 Information Science Engineering Student
 
-Android Development | Cybersecurity | Software Engineering
+Android Development, Cybersecurity, and Software Engineering
