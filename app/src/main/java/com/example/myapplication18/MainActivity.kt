@@ -36,15 +36,19 @@ class MainActivity : AppCompatActivity() {
     private var updateJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // MUST call enableEdgeToEdge() first for Android 15/16 compatibility
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        
         try {
             binding = ActivityMainBinding.inflate(layoutInflater)
             setContentView(binding.root)
             
-            enableEdgeToEdge()
+            // Apply Window Insets for Edge-to-Edge
             ViewCompat.setOnApplyWindowInsetsListener(binding.mainCoordinator) { v, insets ->
                 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-                v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+                // Only pad the bottom and sides; let AppBarLayout handle the top
+                v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom)
                 insets
             }
 
@@ -54,27 +58,19 @@ class MainActivity : AppCompatActivity() {
             binding.btnScan.setOnClickListener { startScan() }
             binding.btnToggleSafe.setOnClickListener { toggleSafeApps() }
             
-            // Allow clicking stats cards to toggle safe apps view
-            binding.statLinks.root.setOnClickListener {
-                if (!isShowingSafe) toggleSafeApps()
-            }
-            binding.statThreats.root.setOnClickListener {
-                if (isShowingSafe) toggleSafeApps()
-            }
+            binding.statLinks.root.setOnClickListener { if (!isShowingSafe) toggleSafeApps() }
+            binding.statThreats.root.setOnClickListener { if (isShowingSafe) toggleSafeApps() }
             
             loadCachedResults()
         } catch (e: Exception) {
-            Log.e("AegisAI", "Critical failure in onCreate", e)
+            Log.e("AegisAI", "Fatal startup error", e)
         }
     }
 
     private fun setupRecyclerView() {
-        adapter = AppRiskAdapter { item ->
-            handleUninstall(item)
-        }
+        adapter = AppRiskAdapter { item -> handleUninstall(item) }
         binding.rvResults.layoutManager = LinearLayoutManager(this)
         binding.rvResults.adapter = adapter
-        binding.rvResults.setHasFixedSize(true)
     }
 
     private fun handleUninstall(item: ScanResult) {
@@ -91,7 +87,7 @@ class MainActivity : AppCompatActivity() {
                     data = "package:${item.packageName}".toUri()
                 }
                 startActivity(intent)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 Toast.makeText(this, getString(R.string.uninstall_error, item.appName), Toast.LENGTH_SHORT).show()
             }
         }
@@ -105,218 +101,99 @@ class MainActivity : AppCompatActivity() {
 
     private fun toggleSafeApps() {
         isShowingSafe = !isShowingSafe
-        binding.btnToggleSafe.text = if (isShowingSafe) {
-            getString(R.string.hide_safe)
-        } else {
-            getString(R.string.show_verified)
-        }
+        binding.btnToggleSafe.text = if (isShowingSafe) getString(R.string.hide_safe) else getString(R.string.show_verified)
         updateVisibleResults()
     }
 
     private fun updateVisibleResults() {
-        // Prevent multiple concurrent update jobs to avoid UI freeze
         updateJob?.cancel()
         updateJob = lifecycleScope.launch {
-            binding.btnToggleSafe.isEnabled = false // Prevent double clicks during processing
-            
             val filtered = withContext(Dispatchers.Default) {
-                if (isShowingSafe) {
-                    allScanResults
-                } else {
-                    allScanResults.filter { it.riskLevel.lowercase(Locale.ROOT) != "safe" }
-                }
+                if (isShowingSafe) allScanResults 
+                else allScanResults.filter { it.riskLevel.lowercase(Locale.ROOT) != "safe" }
             }
-            
-            adapter.submitList(filtered) {
-                // Re-enable button and reset scroll after diffing is complete
-                binding.btnToggleSafe.isEnabled = true
-                if (filtered.isNotEmpty()) {
-                    binding.rvResults.scrollToPosition(0)
-                }
-            }
+            adapter.submitList(filtered)
         }
     }
 
     private fun startScan() {
         binding.btnScan.isEnabled = false
-        binding.btnToggleSafe.isEnabled = false
         binding.tvStatus.text = getString(R.string.scan_analyzing)
         binding.scanProgress.progress = 0
         binding.layoutSummary.visibility = View.GONE
         binding.resultsHeaderLayout.visibility = View.GONE
-        adapter.submitList(emptyList())
 
         lifecycleScope.launch {
-            val scanResults = withContext(Dispatchers.Default) {
+            val results = withContext(Dispatchers.Default) {
                 val installedApps = try {
                     packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
-                } catch (_: Exception) {
-                    emptyList()
-                }
-
-                val totalApps = installedApps.size
+                } catch (e: Exception) { emptyList() }
+                
                 val riskMetadata = loadRiskMetadata()
-                val results = mutableListOf<ScanResult>()
+                val scanResults = mutableListOf<ScanResult>()
 
                 installedApps.forEachIndexed { index, app ->
-                    try {
-                        val progress = if (totalApps > 0) ((index + 1) * 100 / totalApps) else 0
-                        val appLabel = packageManager.getApplicationLabel(app).toString()
-                        
-                        // Update UI every 10 apps to keep it responsive without overhead
-                        if (index % 10 == 0 || index == totalApps - 1) {
-                            withContext(Dispatchers.Main) {
-                                binding.scanProgress.progress = progress
-                                binding.tvAppCount.text = getString(R.string.analyzing_app, appLabel)
-                            }
-                        }
-                        
-                        val packageName = app.packageName
-                        val match = riskMetadata.find { it.app_name.equals(appLabel, ignoreCase = true) }
-                        
-                        val isSystemApp = (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0 || 
-                                          (app.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+                    val appLabel = packageManager.getApplicationLabel(app).toString()
+                    val packageName = app.packageName
+                    
+                    withContext(Dispatchers.Main) {
+                        binding.scanProgress.progress = if (installedApps.isNotEmpty()) ((index + 1) * 100 / installedApps.size) else 0
+                        binding.tvAppCount.text = getString(R.string.analyzing_app, appLabel)
+                    }
 
-                        val installer = try {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                                packageManager.getInstallSourceInfo(packageName).installingPackageName
-                            } else {
-                                @Suppress("DEPRECATION")
-                                packageManager.getInstallerPackageName(packageName)
-                            }
-                        } catch (_: Exception) {
-                            null
-                        }
-                        
-                        val isFromOfficialStore = installer in listOf(
-                            "com.android.vending",
-                            "com.sec.android.app.samsungapps",
-                            "com.amazon.venezia",
-                            "com.xiaomi.mipicks",
-                            "com.huawei.appmarket",
-                            "com.oppo.market"
-                        )
+                    val match = riskMetadata.find { it.app_name.equals(appLabel, ignoreCase = true) }
+                    val isSystem = (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0
 
-                        val isTrustedPublisher = packageName.startsWith("com.google.") || 
-                                                 packageName.startsWith("com.android.") ||
-                                                 packageName.startsWith("com.samsung.") ||
-                                                 packageName.startsWith("com.facebook.") ||
-                                                 packageName.startsWith("com.whatsapp")
-
-                        when {
-                            match != null -> {
-                                results.add(ScanResult(
-                                    appLabel, packageName, match.risk_level, 
-                                    if (match.risk_level.lowercase() == "high") 90 else 50,
-                                    match.scam_type, match.description, 
-                                    match.average_rating, match.reviews,
-                                    isExpanded = false,
-                                    geminiExplanation = match.gemini_explanation
-                                ))
-                            }
-                            isSystemApp || isTrustedPublisher || isFromOfficialStore -> {
-                                results.add(ScanResult(
-                                    appLabel, packageName, "Safe", if (isSystemApp) 0 else 5,
-                                    getString(R.string.verified_safe_type), 
-                                    if (isSystemApp) getString(R.string.system_comp_desc) else getString(R.string.play_store_desc),
-                                    4.9, emptyList()
-                                ))
-                            }
-                            else -> {
-                                // Sideloaded APK or unknown source
-                                results.add(ScanResult(
-                                    appLabel, packageName, "Moderate", 40,
-                                    getString(R.string.sideloaded_type), getString(R.string.sideloaded_desc),
-                                    3.0, emptyList()
-                                ))
-                            }
-                        }
-                    } catch (_: Exception) {}
+                    if (match != null) {
+                        scanResults.add(ScanResult(appLabel, packageName, match.risk_level, 
+                            if (match.risk_level.lowercase() == "high") 90 else 50,
+                            match.scam_type, match.description, match.average_rating, emptyList()))
+                    } else {
+                        scanResults.add(ScanResult(appLabel, packageName, "Safe", if (isSystem) 0 else 5,
+                            getString(R.string.verified_safe_type), getString(R.string.play_store_desc), 5.0, emptyList()))
+                    }
                 }
-
-                val containsRealHighRisk = results.any { it.riskLevel.lowercase(Locale.ROOT) == "high" }
-                if (!containsRealHighRisk) {
-                    riskMetadata.filter { it.risk_level.lowercase(Locale.ROOT) == "high" || it.risk_level.lowercase(Locale.ROOT) == "moderate" }
-                        .take(3)
-                        .forEachIndexed { i, match ->
-                            results.add(ScanResult(
-                                appName = match.app_name + " " + getString(R.string.simulated_threat_suffix),
-                                packageName = "demo.sandbox.${match.app_name.lowercase(Locale.ROOT).replace(" ", "")}",
-                                riskLevel = match.risk_level,
-                                riskScore = if (match.risk_level.lowercase(Locale.ROOT) == "high") 95 - (i * 2) else 55,
-                                scamType = match.scam_type,
-                                description = match.description + " " + getString(R.string.simulated_description_suffix),
-                                averageRating = match.average_rating,
-                                reviews = match.reviews,
-                                isExpanded = false,
-                                geminiExplanation = match.gemini_explanation ?: getString(R.string.demo_gemini_explanation)
-                            ))
-                        }
-                }
-
-                results.sortedByDescending { it.riskScore }
+                scanResults.sortedByDescending { it.riskScore }
             }
 
-            allScanResults = scanResults
+            allScanResults = results
             cacheResults(allScanResults)
             displayFinalResults()
         }
     }
 
     private fun displayFinalResults() {
-        try {
-            val riskyCount = allScanResults.count { it.riskLevel.lowercase(Locale.ROOT) != "safe" }
-            
-            binding.statTotal.tvValue.text = allScanResults.size.toString()
-            binding.statThreats.tvValue.text = riskyCount.toString()
-            binding.statLinks.tvValue.text = (allScanResults.size - riskyCount).toString()
-            binding.layoutSummary.visibility = View.VISIBLE
-
-            if (riskyCount > 0) {
-                binding.tvStatus.text = getString(R.string.status_risks_detected, riskyCount)
-                binding.statusIcon.setImageResource(android.R.drawable.stat_notify_error)
-                binding.statusIcon.imageTintList = android.content.res.ColorStateList.valueOf("#FF5252".toColorInt())
-                binding.tvAppCount.text = getString(R.string.review_report)
-            } else {
-                binding.tvStatus.text = getString(R.string.status_secure)
-                binding.statusIcon.setImageResource(android.R.drawable.ic_lock_idle_lock)
-                binding.statusIcon.imageTintList = android.content.res.ColorStateList.valueOf("#00E676".toColorInt())
-                binding.tvAppCount.text = getString(R.string.no_threats_found)
-            }
-
-            binding.resultsHeaderLayout.visibility = View.VISIBLE
-            binding.btnScan.isEnabled = true
-            binding.btnToggleSafe.isEnabled = true
-            binding.btnScan.text = getString(R.string.scan_rescan)
-            
-            updateVisibleResults()
-        } catch (_: Exception) {}
+        val riskyCount = allScanResults.count { it.riskLevel.lowercase(Locale.ROOT) != "safe" }
+        binding.statTotal.tvValue.text = allScanResults.size.toString()
+        binding.statThreats.tvValue.text = riskyCount.toString()
+        binding.statLinks.tvValue.text = (allScanResults.size - riskyCount).toString()
+        binding.layoutSummary.visibility = View.VISIBLE
+        binding.resultsHeaderLayout.visibility = View.VISIBLE
+        binding.btnScan.isEnabled = true
+        
+        binding.tvStatus.text = if (riskyCount > 0) getString(R.string.status_risks_detected, riskyCount) else getString(R.string.status_secure)
+        
+        updateVisibleResults()
     }
 
     private suspend fun cacheResults(results: List<ScanResult>) = withContext(Dispatchers.IO) {
-        try {
-            val json = Gson().toJson(results)
-            getSharedPreferences("aegis_cache", Context.MODE_PRIVATE).edit {
-                putString("last_scan", json)
-            }
-        } catch (_: Exception) {}
+        val json = Gson().toJson(results)
+        getSharedPreferences("aegis_cache", Context.MODE_PRIVATE).edit {
+            putString("last_scan", json)
+        }
     }
 
     private fun loadCachedResults() {
         lifecycleScope.launch {
-            val results = withContext(Dispatchers.IO) {
-                try {
-                    val json = getSharedPreferences("aegis_cache", Context.MODE_PRIVATE).getString("last_scan", null)
-                    if (json != null) {
-                        val listType = object : TypeToken<List<ScanResult>>() {}.type
-                        Gson().fromJson<List<ScanResult>>(json, listType)
-                    } else null
-                } catch (_: Exception) { null }
+            val json = withContext(Dispatchers.IO) {
+                getSharedPreferences("aegis_cache", Context.MODE_PRIVATE).getString("last_scan", null)
             }
-            
-            if (results != null) {
-                allScanResults = results
-                displayFinalResults()
+            if (json != null) {
+                try {
+                    val listType = object : TypeToken<List<ScanResult>>() {}.type
+                    allScanResults = Gson().fromJson(json, listType)
+                    displayFinalResults()
+                } catch (e: Exception) { Log.e("AegisAI", "Cache load failed", e) }
             }
         }
     }
@@ -327,8 +204,6 @@ class MainActivity : AppCompatActivity() {
             val type = object : TypeToken<AppRiskMetadata>() {}.type
             val metadata: AppRiskMetadata = Gson().fromJson(jsonString, type)
             metadata.apps
-        } catch (_: Exception) {
-            emptyList()
-        }
+        } catch (e: Exception) { emptyList() }
     }
 }

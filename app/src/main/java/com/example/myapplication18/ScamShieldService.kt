@@ -1,6 +1,7 @@
 package com.example.myapplication18
 
 import android.accessibilityservice.AccessibilityService
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
@@ -23,40 +24,49 @@ class ScamShieldService : AccessibilityService() {
             val metadata: AppRiskMetadata? = Gson().fromJson(jsonString, type)
             riskMetadata = metadata?.apps ?: emptyList()
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("AegisAI", "Failed to load metadata in service", e)
         }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
-        try {
-            // Monitor Google Play Store
-            if (event.packageName == "com.android.vending") {
+        // Only monitor Google Play Store to save resources
+        if (event.packageName == "com.android.vending") {
+            try {
                 val rootNode = rootInActiveWindow ?: return
                 checkNodes(rootNode)
+            } catch (e: Exception) {
+                Log.e("AegisAI", "Error processing accessibility event", e)
             }
-        } catch (e: Exception) {}
+        }
     }
 
     private fun checkNodes(node: AccessibilityNodeInfo?) {
         if (node == null) return
 
         try {
-            val text = node.text?.toString()
-            if (text != null) {
-                val match = riskMetadata.find { it.app_name.equals(text, ignoreCase = true) }
+            val nodeText = node.text?.toString()
+            if (!nodeText.isNullOrBlank()) {
+                val match = riskMetadata.find { it.app_name.equals(nodeText, ignoreCase = true) }
                 if (match != null && match.risk_level.equals("High", ignoreCase = true)) {
                     showWarning(match.app_name, match.scam_type)
                 }
             }
 
+            // Recurse children safely
             for (i in 0 until node.childCount) {
-                checkNodes(node.getChild(i))
+                val child = node.getChild(i)
+                if (child != null) {
+                    checkNodes(child)
+                }
             }
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+            // Silently handle node errors during dynamic UI changes
+        }
     }
 
     private fun showWarning(appName: String, scamType: String) {
-        Toast.makeText(this, "⚠️ AegisAI SHIELD: $appName is flagged as $scamType!", Toast.LENGTH_LONG).show()
+        // Accessibility services can show toasts on any screen
+        Toast.makeText(applicationContext, "🚨 AegisAI: $appName is flagged for $scamType!", Toast.LENGTH_LONG).show()
     }
 
     override fun onInterrupt() {}
