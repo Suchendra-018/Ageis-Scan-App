@@ -3,26 +3,26 @@
     <!-- Brand Colors -->
     <color name="brand_green">#00E676</color>
     <color name="brand_green_dark">#00C853</color>
-    <color name="on_brand_green">#000000</color>
+    <color name="on_brand_green">#FFFFFF</color>
 
-    <!-- Risk Levels -->
-    <color name="risk_high">#FF5252</color>
-    <color name="risk_moderate">#FFD600</color>
-    <color name="risk_safe">#00E676</color>
+    <!-- Risk Levels (Vibrant) -->
+    <color name="risk_high">#E53935</color>
+    <color name="risk_moderate">#FB8C00</color>
+    <color name="risk_safe">#43A047</color>
 
-    <!-- Light Theme Palette -->
-    <color name="bg_light">#F8F9FA</color>
-    <color name="surface_light">#FFFFFF</color>
-    <color name="surface_variant_light">#EEF0F4</color>
-    <color name="text_primary_light">#1A1C1E</color>
-    <color name="text_secondary_light">#44474E</color>
-    <color name="outline_light">#DDE2EA</color>
+    <!-- Refined Light Theme Palette -->
+    <color name="bg_light">#F5F7FA</color> <!-- Soft grey background -->
+    <color name="surface_light">#FFFFFF</color> <!-- White cards -->
+    <color name="surface_variant_light">#E1E4E8</color> <!-- Borders/Headers -->
+    <color name="text_primary_light">#1A1C1E</color> <!-- Deep black -->
+    <color name="text_secondary_light">#5C6370</color> <!-- Muted text -->
+    <color name="outline_light">#D1D5DB</color>
 
-    <!-- Dark Theme Palette -->
-    <color name="bg_dark">#0F1115</color>
-    <color name="surface_dark">#1C1F26</color>
-    <color name="surface_variant_dark">#282B33</color>
-    <color name="text_primary_dark">#E2E2E6</color>
-    <color name="text_secondary_dark">#A0A0A0</color>
-    <color name="outline_dark">#303540</color>
+    <!-- Refined Dark Theme Palette (Premium Slate) -->
+    <color name="bg_dark">#0B0D0F</color>
+    <color name="surface_dark">#181A1F</color>
+    <color name="surface_variant_dark">#23262E</color>
+    <color name="text_primary_dark">#F0F0F2</color>
+    <color name="text_secondary_dark">#A1A5B0</color>
+    <color name="outline_dark">#2E323B</color>
 </resources>

@@ -6,13 +6,24 @@ import android.content.pm.PackageManager
 import android.os.Build
 import java.util.Locale
 
+/**
+ * AegisAI Security Engine 21.0 - Zero False Positive Edition
+ * 
+ * LOGIC:
+ * 1. Explicit Risk: If app name is in JSON metadata, follow that (Supervised).
+ * 2. Play Store Trust: IF app is from Google Play Store (or major OEM stores) 
+ *    AND not in the risk JSON, it is 100% SAFE. This fixes banking/delivery apps.
+ * 3. Phishing Check: IF sideloaded app uses a known brand name (GPay, SBI, etc.), 
+ *    it is HIGH RISK.
+ * 4. Heuristics: Sideloaded apps only are analyzed for keywords/permissions.
+ */
 class SecurityEngine(private val context: Context) {
 
     private val riskKeywords = listOf(
         "bet", "win", "wealth", "cash", "loan", "fast", "pyramid", "crypto", 
         "earn", "reward", "cric", "tv", "apk", "mirror", "mod", "free", "video",
         "casino", "luck", "money", "invest", "yield", "trade", "forex", "wallet",
-        "gift", "prize", "jackpot", "lottery", "poker", "slot"
+        "gift", "prize", "jackpot", "lottery", "poker", "slot", "rummy"
     )
 
     private val dangerousPermissions = listOf(
@@ -22,22 +33,14 @@ class SecurityEngine(private val context: Context) {
         "android.permission.READ_CONTACTS"
     )
 
-    // Trusted prefixes for UPI, Banking, and Global Tech apps to avoid false positives
+    // Trusted brand prefixes to detect phishing/clones
     private val trustedPrefixes = listOf(
         "com.google.android.apps.nbu.paisa", // GPay
-        "com.phonepe.app", // PhonePe
-        "net.one97.paytm", // Paytm
-        "in.org.npci.upiapp", // BHIM
-        "com.microsoft.",
-        "com.google.android.",
-        "com.apple.",
-        "com.spotify.music", // Spotify Official
-        "com.whatsapp",
-        "com.facebook.",
-        "com.instagram.",
-        "com.twitter.",
-        "com.linkedin.",
-        "org.telegram."
+        "com.phonepe.app", "net.one97.paytm", "in.org.npci.upiapp", // UPI
+        "com.msf.kbank.mobile", "com.kotak.", "com.sbi.", "com.icicibank", "com.hdfcbank", // Banks
+        "in.swiggy.android", "com.application.zomato", "com.zeptoconsumerapp", "com.blinkit.client", // Delivery
+        "com.navi.android", "com.supermoney.app", "com.cred.android", // Fintech
+        "com.spotify.music", "com.whatsapp", "com.facebook.", "org.telegram."
     )
 
     fun analyzeApp(app: ApplicationInfo, metadata: List<AppRisk>): ScanResult {
@@ -46,13 +49,9 @@ class SecurityEngine(private val context: Context) {
         val packageName = app.packageName
         val isSystem = (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0
         
-        // 1. Check Trust-list (Supervised Safety)
-        if (trustedPrefixes.any { packageName.startsWith(it) }) {
-             return ScanResult(appLabel, packageName, "Safe", 0, "Verified Official App", 
-                 "This application is recognized as a trusted official service.", 5.0, emptyList())
-        }
-
-        // 2. Database Lookup (Supervised Risk)
+        val isFromVerifiedStore = isInstalledFromVerifiedStore(packageName)
+        
+        // 1. Explicit Risk Lookup (Priority 1)
         val knownMatch = metadata.find { it.app_name.equals(appLabel, ignoreCase = true) }
         if (knownMatch != null) {
             return ScanResult(
@@ -63,69 +62,85 @@ class SecurityEngine(private val context: Context) {
             )
         }
 
-        // 3. System App logic
+        // 2. System App logic
         if (isSystem) {
             return ScanResult(appLabel, packageName, "Safe", 0, "System Component", "Verified Android system app.", 5.0, emptyList())
         }
 
-        // 4. Heuristic/ML Layer (Unsupervised Pattern Detection)
+        // 3. THE "NO FALSE POSITIVE" FIX: Trust ALL Play Store apps by default
+        // If it's in the store, and not explicitly in our scam list, we trust it.
+        if (isFromVerifiedStore) {
+             return ScanResult(appLabel, packageName, "Safe", 0, "Verified Store App", 
+                "AegisAI verified this app via Play Store protection.", 5.0, emptyList())
+        }
+
+        // 4. Sideloaded High Risk: Phishing Detection
+        // If it looks like a trusted brand but was SIDELOADED
+        val isTrustedBrandName = trustedPrefixes.any { packageName.startsWith(it) }
+        if (isTrustedBrandName && !isFromVerifiedStore) {
+             return ScanResult(appLabel, packageName, "High", 95, "Phishing/Mod Warning", 
+                "DANGER: This app uses a protected name ($appLabel) but was NOT installed from an official store. It is likely a modified APK or a phishing clone.", 1.2, emptyList())
+        }
+
+        // 5. Heuristic Layer (Only for Sideloaded unknown apps)
         var riskScore = 0
         val reasons = mutableListOf<String>()
 
-        // Analyze Label for high-risk keywords
+        riskScore += 50 // Penalty for sideloading
+        reasons.add("Sideloaded source")
+
         val foundKeywords = riskKeywords.filter { 
             appLabel.lowercase(Locale.ROOT).contains(it) || packageName.lowercase(Locale.ROOT).contains(it)
         }
         if (foundKeywords.isNotEmpty()) {
-            riskScore += 30 + (foundKeywords.size * 10)
-            reasons.add("Risk-associated keywords found")
+            riskScore += 25
+            reasons.add("Risk naming pattern")
         }
 
-        // Permission Profiling
         try {
             val packageInfo = pm.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS)
-            val requested = packageInfo.requestedPermissions
-            val count = requested?.count { dangerousPermissions.contains(it) } ?: 0
-            if (count > 1) {
-                riskScore += count * 12
-                reasons.add("Sensitive permission access requested")
+            val count = packageInfo.requestedPermissions?.count { dangerousPermissions.contains(it) } ?: 0
+            if (count >= 2) {
+                riskScore += 20
+                reasons.add("Sensitive data access")
             }
         } catch (_: Exception) {}
 
-        // Source Analysis
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            try {
-                val installer = pm.getInstallSourceInfo(packageName).installingPackageName
-                if (installer == null || (installer != "com.android.vending" && installer != "com.amazon.venezia")) {
-                    riskScore += 25
-                    reasons.add("Side-loaded / Unverified installation source")
-                }
-            } catch (_: Exception) {}
-        }
-
-        // Final Classification
         return when {
-            riskScore >= 70 -> {
-                ScanResult(
-                    appLabel, packageName, "High", riskScore.coerceAtMost(99),
-                    "AI Flagged: Critical",
-                    "Multiple suspicious structural patterns detected.",
-                    2.0, emptyList(), false, 
-                    "Heuristic Diagnosis: ${reasons.joinToString(", ")}."
-                )
+            riskScore >= 80 -> {
+                ScanResult(appLabel, packageName, "High", riskScore.coerceAtMost(99),
+                    "AI Flagged: Threat", "Potential malicious markers found in sideloaded app.", 2.0, emptyList(), false, 
+                    "Analysis: ${reasons.joinToString(", ")}.")
             }
-            riskScore >= 35 -> {
-                ScanResult(
-                    appLabel, packageName, "Moderate", riskScore,
-                    "AI Flagged: Review",
-                    "Application exhibits atypical characteristics.",
-                    3.5, emptyList(), false,
-                    "Heuristic Diagnosis: ${reasons.joinToString(", ")}."
-                )
+            riskScore >= 60 -> {
+                ScanResult(appLabel, packageName, "Moderate", riskScore,
+                    "AI Flagged: Warning", "Suspicious source and naming structure.", 3.2, emptyList(), false,
+                    "Analysis: ${reasons.joinToString(", ")}.")
             }
             else -> {
-                ScanResult(appLabel, packageName, "Safe", 5, "Unrecognized", "No known risks detected by AegisAI.", 5.0, emptyList())
+                ScanResult(appLabel, packageName, "Safe", 5, "Verified Safe", "AegisAI analyzed this app and found no significant security threats.", 5.0, emptyList())
             }
+        }
+    }
+
+    private fun isInstalledFromVerifiedStore(packageName: String): Boolean {
+        return try {
+            val pm = context.packageManager
+            val installer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                pm.getInstallSourceInfo(packageName).installingPackageName
+            } else {
+                @Suppress("DEPRECATION")
+                pm.getInstallerPackageName(packageName)
+            }
+            // Trust Play Store and common OEM stores
+            installer == "com.android.vending" || 
+            installer == "com.sec.android.app.samsungapps" || 
+            installer == "com.xiaomi.mipicks" || 
+            installer == "com.oppo.market" || 
+            installer == "com.vivo.appstore" ||
+            installer == "com.huawei.appmarket"
+        } catch (e: Exception) {
+            false
         }
     }
 }
