@@ -1,10 +1,23 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.MyApplication18" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
-        <item name="android:windowBackground">#0F1115</item>
-        <item name="android:statusBarColor">#0F1115</item>
-        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <!-- Brand Colors -->
+        <item name="colorPrimary">@color/brand_green</item>
+        <item name="colorOnPrimary">@color/on_brand_green</item>
+        <item name="colorPrimaryContainer">@color/brand_green_dark</item>
+
+        <!-- Semantic Colors -->
+        <item name="android:windowBackground">@color/bg_light</item>
+        <item name="colorSurface">@color/surface_light</item>
+        <item name="colorSurfaceVariant">@color/surface_variant_light</item>
+        <item name="colorOutline">@color/outline_light</item>
+        <item name="colorOutlineVariant">@color/outline_light</item>
+
+        <item name="android:textColorPrimary">@color/text_primary_light</item>
+        <item name="android:textColorSecondary">@color/text_secondary_light</item>
+
+        <item name="android:statusBarColor">@color/bg_light</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
     </style>
 
     <style name="Theme.MyApplication18" parent="Base.Theme.MyApplication18" />

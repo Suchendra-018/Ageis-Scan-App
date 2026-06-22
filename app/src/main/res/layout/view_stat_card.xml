@@ -6,9 +6,10 @@
     android:layout_weight="1"
     android:layout_margin="4dp"
     app:cardCornerRadius="16dp"
-    app:cardBackgroundColor="#1C1F26"
-    app:strokeWidth="0.5dp"
-    app:strokeColor="#303540">
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:cardElevation="0dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="?attr/colorOutlineVariant">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -22,13 +23,13 @@
             android:text="0"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="#FFFFFF"/>
+            android:textColor="?android:attr/textColorPrimary"/>
         <TextView
             android:id="@+id/tvLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Label"
             android:textSize="10sp"
-            android:textColor="#A0A0A0"/>
+            android:textColor="?android:attr/textColorSecondary"/>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

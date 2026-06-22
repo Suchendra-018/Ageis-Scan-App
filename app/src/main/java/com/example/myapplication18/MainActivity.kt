@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -12,7 +11,6 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
-import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -23,6 +21,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -31,12 +30,12 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var adapter: AppRiskAdapter
+    private lateinit var securityEngine: SecurityEngine
     private var allScanResults: List<ScanResult> = emptyList()
     private var isShowingSafe = false
     private var updateJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // MUST call enableEdgeToEdge() first for Android 15/16 compatibility
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         
@@ -44,10 +43,14 @@ class MainActivity : AppCompatActivity() {
             binding = ActivityMainBinding.inflate(layoutInflater)
             setContentView(binding.root)
             
-            // Apply Window Insets for Edge-to-Edge
+            securityEngine = SecurityEngine(this)
+
+            // Fix: Professional Status Bar Handling
             ViewCompat.setOnApplyWindowInsetsListener(binding.mainCoordinator) { v, insets ->
                 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-                // Only pad the bottom and sides; let AppBarLayout handle the top
+                // Apply top padding to the toolbar to avoid overlap with status bar
+                binding.toolbar.setPadding(0, systemBars.top, 0, 0)
+                // Apply bottom and side padding to the main container
                 v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom)
                 insets
             }
@@ -74,34 +77,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleUninstall(item: ScanResult) {
-        if (item.packageName.startsWith("demo.sandbox")) {
-            Toast.makeText(this, getString(R.string.removed_simulated, item.appName), Toast.LENGTH_SHORT).show()
-            allScanResults = allScanResults.filter { it.packageName != item.packageName }
-            lifecycleScope.launch {
-                cacheResults(allScanResults)
-                displayFinalResults()
+        try {
+            val intent = Intent(Intent.ACTION_DELETE).apply {
+                data = "package:${item.packageName}".toUri()
             }
-        } else {
-            try {
-                val intent = Intent(Intent.ACTION_DELETE).apply {
-                    data = "package:${item.packageName}".toUri()
-                }
-                startActivity(intent)
-            } catch (e: Exception) {
-                Toast.makeText(this, getString(R.string.uninstall_error, item.appName), Toast.LENGTH_SHORT).show()
-            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Uninstall failed", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun setupStatCards() {
-        binding.statTotal.tvLabel.text = getString(R.string.stat_total_label)
-        binding.statThreats.tvLabel.text = getString(R.string.stat_threats_label)
-        binding.statLinks.tvLabel.text = getString(R.string.stat_safe_label)
+        binding.statTotal.tvLabel.text = "Total Apps"
+        binding.statThreats.tvLabel.text = "Risks"
+        binding.statLinks.tvLabel.text = "Safe"
     }
 
     private fun toggleSafeApps() {
         isShowingSafe = !isShowingSafe
-        binding.btnToggleSafe.text = if (isShowingSafe) getString(R.string.hide_safe) else getString(R.string.show_verified)
+        binding.btnToggleSafe.text = if (isShowingSafe) "Hide Safe" else "Show All"
         updateVisibleResults()
     }
 
@@ -118,7 +112,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startScan() {
         binding.btnScan.isEnabled = false
-        binding.tvStatus.text = getString(R.string.scan_analyzing)
+        binding.tvStatus.text = "Analyzing..."
         binding.scanProgress.progress = 0
         binding.layoutSummary.visibility = View.GONE
         binding.resultsHeaderLayout.visibility = View.GONE
@@ -134,24 +128,17 @@ class MainActivity : AppCompatActivity() {
 
                 installedApps.forEachIndexed { index, app ->
                     val appLabel = packageManager.getApplicationLabel(app).toString()
-                    val packageName = app.packageName
                     
                     withContext(Dispatchers.Main) {
                         binding.scanProgress.progress = if (installedApps.isNotEmpty()) ((index + 1) * 100 / installedApps.size) else 0
-                        binding.tvAppCount.text = getString(R.string.analyzing_app, appLabel)
+                        binding.tvAppCount.text = "Checking: $appLabel"
                     }
 
-                    val match = riskMetadata.find { it.app_name.equals(appLabel, ignoreCase = true) }
-                    val isSystem = (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-
-                    if (match != null) {
-                        scanResults.add(ScanResult(appLabel, packageName, match.risk_level, 
-                            if (match.risk_level.lowercase() == "high") 90 else 50,
-                            match.scam_type, match.description, match.average_rating, emptyList()))
-                    } else {
-                        scanResults.add(ScanResult(appLabel, packageName, "Safe", if (isSystem) 0 else 5,
-                            getString(R.string.verified_safe_type), getString(R.string.play_store_desc), 5.0, emptyList()))
-                    }
+                    // Use the new AI Security Engine
+                    val result = securityEngine.analyzeApp(app, riskMetadata)
+                    scanResults.add(result)
+                    
+                    delay(5) // Smooth UI updates
                 }
                 scanResults.sortedByDescending { it.riskScore }
             }
@@ -171,7 +158,8 @@ class MainActivity : AppCompatActivity() {
         binding.resultsHeaderLayout.visibility = View.VISIBLE
         binding.btnScan.isEnabled = true
         
-        binding.tvStatus.text = if (riskyCount > 0) getString(R.string.status_risks_detected, riskyCount) else getString(R.string.status_secure)
+        binding.tvStatus.text = if (riskyCount > 0) "$riskyCount Risks Detected" else "System Protected"
+        binding.statusIcon.setImageResource(if (riskyCount > 0) android.R.drawable.ic_dialog_alert else R.drawable.ic_aegis_logo)
         
         updateVisibleResults()
     }

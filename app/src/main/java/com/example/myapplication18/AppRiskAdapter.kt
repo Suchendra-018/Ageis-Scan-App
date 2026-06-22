@@ -5,7 +5,7 @@ import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.graphics.toColorInt
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -37,12 +37,12 @@ class AppRiskAdapter(
             tvAppName.text = item.appName
             tvScamType.text = item.scamType
             tvDescription.text = item.description
-            tvRating.text = context.getString(R.string.rating_format, item.averageRating)
+            tvRating.text = "Rating: ${item.averageRating} ★"
             riskMeter.progress = item.riskScore
 
             if (item.reviews.isNotEmpty()) {
                 val reviewText = item.reviews.joinToString("\n\n") { 
-                    context.getString(R.string.review_item_format, it.user, it.stars, it.comment)
+                    "${it.user} (${it.stars}★): ${it.comment}"
                 }
                 tvReviews.text = reviewText
                 tvReviewsLabel.visibility = View.VISIBLE
@@ -75,36 +75,37 @@ class AppRiskAdapter(
             }
 
             val risk = item.riskLevel.lowercase(Locale.ROOT)
+            val highColor = ContextCompat.getColor(context, R.color.risk_high)
+            val moderateColor = ContextCompat.getColor(context, R.color.risk_moderate)
+            val safeColor = ContextCompat.getColor(context, R.color.risk_safe)
+
             when (risk) {
                 "safe" -> {
-                    val green = "#00E676".toColorInt()
-                    tvRiskLevel.text = context.getString(R.string.risk_safe)
-                    tvRiskLevel.setTextColor(green)
-                    tvRiskLevel.backgroundTintList = ColorStateList.valueOf("#152C22".toColorInt())
-                    riskMeter.setIndicatorColor(green)
+                    tvRiskLevel.text = "SAFE"
+                    tvRiskLevel.setTextColor(safeColor)
+                    tvRiskLevel.backgroundTintList = ColorStateList.valueOf(safeColor).withAlpha(30)
+                    riskMeter.setIndicatorColor(safeColor)
                     btnUninstall.visibility = View.GONE
                 }
                 "moderate" -> {
-                    val orange = "#FFD600".toColorInt()
-                    tvRiskLevel.text = context.getString(R.string.risk_moderate)
-                    tvRiskLevel.setTextColor(orange)
-                    tvRiskLevel.backgroundTintList = ColorStateList.valueOf("#2C2A15".toColorInt())
-                    riskMeter.setIndicatorColor(orange)
-                    btnUninstall.visibility = View.GONE
+                    tvRiskLevel.text = "MODERATE"
+                    tvRiskLevel.setTextColor(moderateColor)
+                    tvRiskLevel.backgroundTintList = ColorStateList.valueOf(moderateColor).withAlpha(30)
+                    riskMeter.setIndicatorColor(moderateColor)
+                    btnUninstall.visibility = if (item.isExpanded) View.VISIBLE else View.GONE
                 }
                 "high" -> {
-                    val red = "#FF5252".toColorInt()
-                    tvRiskLevel.text = context.getString(R.string.risk_high)
-                    tvRiskLevel.setTextColor(red)
-                    tvRiskLevel.backgroundTintList = ColorStateList.valueOf("#2C1515".toColorInt())
-                    riskMeter.setIndicatorColor(red)
+                    tvRiskLevel.text = "HIGH RISK"
+                    tvRiskLevel.setTextColor(highColor)
+                    tvRiskLevel.backgroundTintList = ColorStateList.valueOf(highColor).withAlpha(30)
+                    riskMeter.setIndicatorColor(highColor)
                     btnUninstall.visibility = if (item.isExpanded) View.VISIBLE else View.GONE
                 }
             }
 
             expandableLayout.visibility = if (item.isExpanded) View.VISIBLE else View.GONE
             ivExpand.rotation = if (item.isExpanded) 180f else 0f
-            tvGeminiExplanation.text = item.geminiExplanation ?: context.getString(R.string.no_insights)
+            tvGeminiExplanation.text = item.geminiExplanation ?: "AegisAI analyzed this app and found no critical issues."
 
             holder.itemView.setOnClickListener {
                 val currentPos = holder.adapterPosition

@@ -1,5 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Brand Colors -->
+    <color name="brand_green">#00E676</color>
+    <color name="brand_green_dark">#00C853</color>
+    <color name="on_brand_green">#000000</color>
+
+    <!-- Risk Levels -->
+    <color name="risk_high">#FF5252</color>
+    <color name="risk_moderate">#FFD600</color>
+    <color name="risk_safe">#00E676</color>
+
+    <!-- Light Theme Palette -->
+    <color name="bg_light">#F8F9FA</color>
+    <color name="surface_light">#FFFFFF</color>
+    <color name="surface_variant_light">#EEF0F4</color>
+    <color name="text_primary_light">#1A1C1E</color>
+    <color name="text_secondary_light">#44474E</color>
+    <color name="outline_light">#DDE2EA</color>
+
+    <!-- Dark Theme Palette -->
+    <color name="bg_dark">#0F1115</color>
+    <color name="surface_dark">#1C1F26</color>
+    <color name="surface_variant_dark">#282B33</color>
+    <color name="text_primary_dark">#E2E2E6</color>
+    <color name="text_secondary_dark">#A0A0A0</color>
+    <color name="outline_dark">#303540</color>
 </resources>
